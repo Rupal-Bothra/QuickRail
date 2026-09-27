@@ -1,0 +1,107 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  name          String
+  email         String    @unique
+  password_hash String
+  phone         String
+  role          String    @default("USER") // USER or ADMIN
+  created_at    DateTime  @default(now())
+  bookings      Booking[]
+
+  @@map("users")
+}
+
+model Train {
+  id                Int             @id @default(autoincrement())
+  train_number      String          @unique
+  name              String
+  source            String
+  destination       String
+  departure_time    String
+  arrival_time      String
+  duration          String
+  classes_available String          // e.g. "1A,2A,3A,SL"
+  routes            Route[]
+  seat_inventories  SeatInventory[]
+  bookings          Booking[]
+
+  @@map("trains")
+}
+
+model Route {
+  id       Int    @id @default(autoincrement())
+  train_id Int
+  stops    String @db.Text // JSON string of intermediate stops: [{station: "NDLS", time: "10:00"}]
+  distance Int    // in KM
+  train    Train  @relation(fields: [train_id], references: [id], onDelete: Cascade)
+
+  @@map("routes")
+}
+
+model SeatInventory {
+  id              Int    @id @default(autoincrement())
+  train_id        Int
+  class           String // "1A", "2A", "3A", "SL", "CC"
+  date            String // YYYY-MM-DD
+  total_seats     Int
+  available_seats Int
+  rac_count       Int    @default(0)
+  waitlist_count  Int    @default(0)
+  train           Train  @relation(fields: [train_id], references: [id], onDelete: Cascade)
+
+  @@unique([train_id, class, date])
+  @@map("seat_inventory")
+}
+
+model Booking {
+  id           Int         @id @default(autoincrement())
+  user_id      Int
+  train_id     Int
+  pnr          String      @unique
+  class        String
+  journey_date String      // YYYY-MM-DD
+  status       String      // "CONFIRMED", "RAC", "WAITLIST", "CANCELLED"
+  total_fare   Decimal     @db.Decimal(10, 2)
+  created_at   DateTime    @default(now())
+  user         User        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  train        Train       @relation(fields: [train_id], references: [id], onDelete: Cascade)
+  passengers   Passenger[]
+  payments     Payment[]
+
+  @@map("bookings")
+}
+
+model Passenger {
+  id               Int     @id @default(autoincrement())
+  booking_id       Int
+  name             String
+  age              Int
+  gender           String  // "M", "F", "Other"
+  berth_preference String  // "Lower", "Middle", "Upper", "Side Lower", "Side Upper", "No Preference"
+  seat_number      String? // e.g. "B2-34" or "RAC-5" or "WL-12"
+  booking          Booking @relation(fields: [booking_id], references: [id], onDelete: Cascade)
+
+  @@map("passengers")
+}
+
+model Payment {
+  id             Int      @id @default(autoincrement())
+  booking_id     Int
+  amount         Decimal  @db.Decimal(10, 2)
+  status         String   // "SUCCESS", "FAILED", "REFUNDED"
+  method         String   // "UPI", "CARD", "NET_BANKING"
+  transaction_id String   @unique
+  created_at     DateTime @default(now())
+  booking        Booking  @relation(fields: [booking_id], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
