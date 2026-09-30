@@ -339,7 +339,13 @@ The project can be further enhanced with:
 - Additional railway reservation features
 
 ---
+## 🎥 Project Demo
 
+A short walkthrough of the QuickRail AWS deployment and live application:
+
+[▶️ Watch the QuickRail Demo Video] ( https://lnkd.in/p/dgEFv6Ug )
+
+---
 ## 👩‍💻 Author
 Rupal Bothra
 
